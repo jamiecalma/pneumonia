@@ -1,0 +1,145 @@
+ /* Generated Code (IMPORT) */
+ /* Source File: pneumon.csv */
+ /* Source Path: /home/u63559379/Survival Analysis */
+ /* Code generated on: 2/8/24, 10:16 PM */
+
+%web_drop_table(WORK.IMPORT);
+
+FILENAME REFFILE '/home/u63559379/Survival Analysis/pneumon.csv';
+
+PROC IMPORT DATAFILE=REFFILE
+ DBMS=CSV
+ OUT=WORK.IMPORT;
+ GETNAMES=YES;
+ RUN;
+
+ PROC CONTENTS DATA=WORK.IMPORT; RUN;
+ %web_open_table(WORK.IMPORT);
+ data pneumon;
+ set work.import;
+ if alcohol = 0 then alcohol = 0;
+ else alcohol = 1;
+ if smoke = 0 then smoke = 0;
+ else smoke = 1;
+ run;
+
+ proc corr data=pneumon;
+ run;
+
+ /* K-M estimation */
+ title;
+ proc lifetest data=pneumon method=km plots=(survival(cl),ls,lls)
+ graphics outsurv=a;
+ time chldage*hospital(0);
+ symbol1 v=none color=black line=1;
+ symbol2 v=none color=black line=2;
+ run;
+
+ /* Non-parametric method to select significant covariates (stratified
+ by region)*/
+ proc lifetest data=pneumon method=km plots=(survival(cl),ls,lls)
+graphics;
+ time chldage*hospital(0);
+ strata region/ group=race;
+ test mthage urban alcohol smoke poverty bweight education nsibs
+ wmonth sfmonth agepn race region;
+ run;
+
+ /* Non-parametric method to select significant covariates (stratified
+ by race)*/
+ proc lifetest data=pneumon method=km plots=(survival(cl),ls,lls)
+ graphics;
+ time chldage*hospital(0);
+ strata race/ group=region;
+ test mthage urban alcohol smoke poverty bweight education nsibs
+ wmonth sfmonth agepn race region;
+ run;
+
+ /* Non-parametric method to select significant covariates without race
+ and region*/
+ proc lifetest data=pneumon method=km plots=(survival(cl),ls,lls)
+ graphics;
+ time chldage*hospital(0);
+ test mthage urban alcohol smoke poverty bweight education nsibs
+ wmonth sfmonth agepn;
+ run;
+
+ /* Conduct backward model selection ... */
+ proc phreg data=pneumon;
+ class race region;
+ model chldage*hospital(0)= mthage urban alcohol smoke poverty
+ bweight education nsibs wmonth sfmonth agepn race region
+ /ties=efron selection=backward;
+ run;
+
+ /*Global Test and likelihood ratio test for final model*/
+ proc phreg data=pneumon;
+ model chldage*hospital(0)= smoke nsibs mthage wmonth
+ /ties=efron;
+ run;
+
+ /*To get-2logL for likelihood ratio test for full model*/
+ proc phreg data=pneumon;
+ class race region;
+ model chldage*hospital(0)= mthage urban alcohol smoke poverty
+ bweight education nsibs wmonth sfmonth agepn race region
+ /ties=efron;
+ run;
+
+/* Fit the final model and check its proportional hazard assumption */
+ proc phreg data=pneumon;
+ model chldage*hospital(0)= smoke nsibs mthage wmonth/ ties=exact;
+ assess ph/resample;
+ run;
+
+ /* Predicted survival function for hypothetically worst conditions */
+ data covals;
+ input smoke nsibs mthage wmonth;
+ cards;
+ 1 10 22 6
+ run;
+
+ proc phreg data=pneumon;
+ model chldage*hospital(0)=smoke nsibs mthage wmonth /ties=exact;
+ baseline out=pred covariates=covals survival=s lower=lcl
+ upper=ucl cumhaz=H
+ lowercumhaz=lH uppercumhaz=uH;
+ run;
+ proc print data=pred;
+ run;
+
+ /* print out & plot the predicted survival rates and find out the
+ 95-percentile survival time */
+ /* the smallest time y such that S(y)< or = .95 */
+ proc gplot data=pred;
+ title "Predicted curve for smoke = Yes, nsibs = 10, mthage = 22,
+ wmonth = 6";
+ symbol1 value=dot i=join;
+ plot s*chldage H*chldage;
+ run;
+
+ /* Predicted survival function for hypothetically better conditions */
+ data covals2;
+ input smoke nsibs mthage wmonth;
+ cards;
+ 0 0 22 9
+ run;
+
+ proc phreg data=pneumon;
+ model chldage*hospital(0)=smoke nsibs mthage wmonth /ties=exact;
+ baseline out=pred2 covariates=covals2 survival=s lower=lcl
+ upper=ucl cumhaz=H
+ lowercumhaz=lH uppercumhaz=uH;
+ run;
+ proc print data=pred2;
+run;
+
+ /* print out & plot the predicted survival rates and find out the
+ 95-percentile survival time */
+ /* the smallest time y such that S(y)< or = .95 */
+ proc gplot data=pred2;
+ title "Predicted curve for smoke = No, nsibs = 0, mthage = 22,
+ wmonth = 9";
+ symbol1 value=dot i=join;
+ plot s*chldage H*chldage;
+ run;
