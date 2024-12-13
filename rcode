@@ -1,0 +1,55 @@
+ library(ggplot2)
+ library(cowplot)
+
+plot1 <-ggplot(pneumonia, aes(x = hospital, y = mthage)) +
+ geom_boxplot() +
+ labs(x = "Hospitalization Status", y = "Mother's Age") +
+ ggtitle("Mother's Age and Hospitalization Status") +
+ theme(plot.title = element_text(size = 9))
+
+plot2 <-ggplot(pneumonia, aes(x = hospital, y = education)) +
+ geom_boxplot() +
+ labs(x = "Hospitalization Status", y = "Years of School") +
+ ggtitle("Education and Hospitalization Status") +
+ theme(plot.title = element_text(size = 9))
+
+plot3 <-ggplot(pneumonia, aes(x = hospital, y = nsibs)) +
+ geom_boxplot() +
+ labs(x = "Hospitalization Status", y = "Number of Siblings") +
+ ggtitle("Number of Siblings and Hospitalization Status") +
+ theme(plot.title = element_text(size = 9))
+
+plot4 <-ggplot(pneumonia, aes(x = hospital, y = wmonth)) +
+ geom_boxplot() +
+ labs(x = "Hospitalization Status", y = "Month of Weaning") +
+ ggtitle("Month of Weaning and Hospitalization Status") +
+ theme(plot.title = element_text(size = 9))
+
+plot5 <-ggplot(pneumonia, aes(x = hospital, y = sfmonth)) +
+ geom_boxplot() +
+ labs(x = "Hospitalization Status", y = "Month of Solid Food") +
+ ggtitle("Month of Solid Food and Hospitalization Status") +
+ theme(plot.title = element_text(size = 9))
+
+plot6 <-ggplot(pneumonia, aes(x = hospital, y = agepn)) +
+ geom_boxplot() +
+ labs(x = "Hospitalization Status", y = "Duration of Hospitalization") +
+ggtitle("Duration of Hospitalization and Hospitalization Status") +
+ theme(plot.title = element_text(size = 9))
+ 
+plot_grid(plot1, plot2, plot3, plot4, plot5, labels = "AUTO")
+
+library(survival)
+library(lmtest)
+
+ final_model <-coxph(Surv(chldage, hospital) ~ smoke + nsibs + mthage +
+ wmonth, data = pneumon)
+
+# Fit the full model (final model)
+ full_model <-coxph(Surv(chldage, hospital) ~ mthage + urban + alcohol +
+ smoke + poverty + bweight + education + nsibs + wmonth + sfmonth + agepn +
+ factor(race) + factor(region), data = pneumon)
+ 
+# Perform the likelihood ratio test
+ lr_test <-lrtest(final_model, full_model)
+ lr_tes
